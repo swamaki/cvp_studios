@@ -1,4 +1,4 @@
-# cvp
+# CVP Studio Tools
 
 Basic Python helpers for working with Arista CloudVision and CloudVision Studios.
 
