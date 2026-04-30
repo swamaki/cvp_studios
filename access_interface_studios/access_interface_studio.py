@@ -245,6 +245,63 @@ class AccessInterfaceStudioEditor:
         self.set_input(["campus"], campus_inputs)
         return results
 
+    async def set_interface_configs_for_updates(
+        self,
+        updates: list[Mapping[str, Any]],
+    ) -> list[dict[str, str | None]]:
+        """Update many interfaces from a list of hostname/access-pod mappings.
+
+        Expected shape:
+        [
+            {
+                "hostname": "switch-a",
+                "access_pod_name": "pod-a",
+                "interfaces": [
+                    {
+                        "name": "Ethernet1",
+                        "description": "Desk 12",
+                        "port_profile": "ACCESS",
+                    },
+                ],
+            },
+        ]
+        """
+        studio_inputs = self.dump_inputs([])
+        campus_inputs = studio_inputs.get("campus", [])
+        results = []
+
+        hostname_to_device_id: dict[str, str] = {}
+
+        for switch_update in updates:
+            hostname = switch_update["hostname"]
+            access_pod_name = switch_update.get("access_pod_name", hostname)
+
+            device_id = hostname_to_device_id.get(hostname)
+            if device_id is None:
+                device_id = await resolve_device_id(
+                    token=self.token,
+                    cvp_host=self.cvp_host,
+                    hostname=hostname,
+                )
+                hostname_to_device_id[hostname] = device_id
+
+            for interface_update in switch_update.get("interfaces", []):
+                result = self._apply_interface_update(
+                    campus_inputs=campus_inputs,
+                    switch_name=device_id,
+                    interface_name=interface_update["name"],
+                    description=interface_update.get("description"),
+                    port_profile=interface_update.get("port_profile"),
+                    access_pod_name=access_pod_name,
+                )
+                result["hostname"] = hostname
+                result["device_id"] = device_id
+                result["access_pod_name"] = access_pod_name
+                results.append(result)
+
+        self.set_input(["campus"], campus_inputs)
+        return results
+
     def _apply_interface_update(
         self,
         campus_inputs,

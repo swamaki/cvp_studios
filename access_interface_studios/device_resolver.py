@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Resolve CloudVision device identifiers from hostnames."""
+"""Resolve CloudVision inventory details from hostnames."""
 
 import ssl
 
@@ -73,3 +73,71 @@ async def resolve_device_id(
         )
 
     return unique_matches[0]
+
+
+async def resolve_device_details(
+    *,
+    token: str,
+    cvp_host: str,
+    hostname: str,
+) -> dict[str, str | None]:
+    """Return key inventory fields for an exact hostname match."""
+    ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+    ssl_ctx.set_alpn_protocols(["h2"])
+
+    client = AsyncCVClient(
+        token=token,
+        ssl_context=ssl_ctx,
+        host=cvp_host,
+        port=443,
+    )
+
+    matches = []
+
+    with client as channel:
+        stub = DeviceServiceStub(channel)
+
+        async for resp in stub.get_all(DeviceStreamRequest()):
+            value = getattr(resp, "value", None)
+            if value is None:
+                continue
+
+            device_hostname = getattr(value, "hostname", None) or getattr(
+                value, "fqdn", None
+            )
+            if device_hostname != hostname:
+                continue
+
+            key = getattr(value, "key", None)
+            device_id = getattr(key, "device_id", None) if key else None
+            matches.append(
+                {
+                    "hostname": device_hostname,
+                    "device_id": device_id,
+                    "platform": getattr(value, "platform", None),
+                    "model_name": getattr(value, "model_name", None),
+                    "software_version": getattr(value, "software_version", None),
+                }
+            )
+
+    if not matches:
+        raise ValueError(f"No device named {hostname!r} was found in CloudVision inventory.")
+
+    unique_matches = {}
+    for match in matches:
+        device_id = match.get("device_id")
+        if device_id:
+            unique_matches[device_id] = match
+
+    if len(unique_matches) > 1:
+        raise ValueError(
+            f"Multiple devices named {hostname!r} were found in CloudVision inventory: "
+            f"{sorted(unique_matches)}"
+        )
+
+    if not unique_matches:
+        raise ValueError(
+            f"Device {hostname!r} was found in CloudVision inventory but has no device ID."
+        )
+
+    return next(iter(unique_matches.values()))

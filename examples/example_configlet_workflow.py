@@ -11,10 +11,16 @@ It demonstrates the three core steps:
 
 Fill in the variables below, then run the script from the project root with:
 
-    python3 example_configlet_workflow.py
+    python3 examples/example_configlet_workflow.py
 """
 
 import asyncio
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from static_studios.configlet_writer import ConfigletWriter
 from static_studios.resolve_configlet_id import get_configlet_id
@@ -30,7 +36,7 @@ CVP_HOST = "cvp.example.com"
 # Pick a name and description that make it obvious this workspace came from
 # your automation or test run.
 WORKSPACE_NAME = "Example Workspace"
-WORKSPACE_DESCRIPTION = "Workspace created by example_configlet_workflow.py"
+WORKSPACE_DESCRIPTION = "Workspace created by examples/example_configlet_workflow.py"
 
 # Each item below represents one configlet to update.
 # "name" must exactly match the configlet's display name in CloudVision.

@@ -26,7 +26,7 @@ async def get_configlet_id(
 
     Args:
         token (str): CloudVision API token.
-        cvp_host (str): CloudVision host, such as `www.arista.io`.
+        cvp_host (str): CloudVision host, such as `cvp.example.com`.
         configlet_name (str): Exact configlet display name to search for.
         workspace_id (str): Workspace to search. Leave empty to search mainline.
 

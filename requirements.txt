@@ -1,3 +1,5 @@
 cloudvision
 requests
 python-dateutil
+PyYAML
+mysql-connector-python
